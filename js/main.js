@@ -23,6 +23,7 @@ const restaurantTitle = document.querySelector('.restaurant-title');
 const rating = document.querySelector('.rating');
 const minPrice = document.querySelector('.price');
 const category = document.querySelector('.category');
+const inputSearch = document.querySelector('.input-search');
 
 let login = localStorage.getItem('gloDelivery');
 
@@ -192,29 +193,32 @@ function createCardGood({ description, image, name, price, id }) {
 
 function openGoods(event) {
     const target = event.target;
-    const restaurant = target.closest('.card-restaurant');
+    if (login) {
+        const restaurant = target.closest('.card-restaurant');
 
-    if (restaurant && login) {
-        const info = restaurant.dataset.info.split(',');
+        if (restaurant) {
+            const info = restaurant.dataset.info.split(',');
 
-        const [name, price, stars, kitchen] = info;
+            const [name, price, stars, kitchen] = info;
 
-        cardsMenu.textContent = '';
-        containerPromo.classList.add('hide');
-        restaurants.classList.add('hide');
-        menu.classList.remove('hide');
+            cardsMenu.textContent = '';
+            containerPromo.classList.add('hide');
+            restaurants.classList.add('hide');
+            menu.classList.remove('hide');
 
-        restaurantTitle.textContent = name;
-        rating.textContent = stars;
-        minPrice.textContent = `От ${price} ₽`;
-        category.textContent = kitchen;
+            restaurantTitle.textContent = name;
+            rating.textContent = stars;
+            minPrice.textContent = `От ${price} ₽`;
+            category.textContent = kitchen;
 
-        getData(`./db/${restaurant.dataset.products}`).then(function (data) {
-            data.forEach(createCardGood);
-        });
+            getData(`./db/${restaurant.dataset.products}`).then(function (
+                data
+            ) {
+                data.forEach(createCardGood);
+            });
+        }
     } else {
         toggleModalAuth();
-        logIn();
     }
 }
 
@@ -320,6 +324,54 @@ function init() {
         containerPromo.classList.remove('hide');
         restaurants.classList.remove('hide');
         menu.classList.add('hide');
+    });
+
+    inputSearch.addEventListener('keydown', function (event) {
+        if (event.keyCode === 13) {
+            const target = event.target;
+            const value = target.value.toLowerCase().trim();
+            target.value = '';
+
+            if (!value || value.length < 3) {
+                target.style.backgroundColor = 'tomato';
+                setTimeout(function () {
+                    target.style.backgroundColor = '';
+                }, 2000);
+                return;
+            }
+            const goods = [];
+            getData('./db/partners.json').then(function (data) {
+                const products = data.map(function (item) {
+                    return item.products;
+                });
+                products.forEach(function (product) {
+                    getData(`./db/${product}`)
+                        .then(function (data) {
+                            goods.push(...data);
+                            const searchGoods = goods.filter(function (item) {
+                                return item.name.toLowerCase().includes(value);
+                            });
+                            console.log(searchGoods);
+
+                            cardsMenu.textContent = '';
+
+                            containerPromo.classList.add('hide');
+                            restaurants.classList.add('hide');
+                            menu.classList.remove('hide');
+
+                            restaurantTitle.textContent = 'Результат поиска';
+                            rating.textContent = '';
+                            minPrice.textContent = '';
+                            category.textContent = '';
+
+                            return searchGoods;
+                        })
+                        .then(function (data) {
+                            data.forEach(createCardGood);
+                        });
+                });
+            });
+        }
     });
 
     checkAuth();
